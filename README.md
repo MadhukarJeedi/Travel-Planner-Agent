@@ -177,9 +177,12 @@ pip install -r requirements.txt
 Create a `.env` file in the root directory.
 
 ```env
-GROQ_API_KEY=your_groq_api_key
-IMAGE_API_KEY=your_image_api_key
-TRAVEL_API_KEY=your_travel_api_key
+OPENWEATHER_API_KEY = Paste your OPENWEATHER API KEY for getting live weather info
+GROQ_API_KEY = Paste your GROQ API KEY 
+RAPIDAPI_KEY = paste your RAPID API KEY for getting live trains info
+ORS_API_KEY = Paste your OpenRouteService API KEY for Route Planning
+GEOAPIFY_API_KEY = Paste your Geoapify API KEY for Tourist Places
+UNSPLASH_API_KEY=Paste your PEXELS API KEY for Tourist Places images
 ```
 
 ---
