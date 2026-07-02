@@ -299,8 +299,7 @@ Contributions are welcome.
 
 GitHub: https://github.com/MadhukarJeedi
 
-LinkedIn: Add Your LinkedIn Profile URL
-
+LinkedIn: https://www.linkedin.com/in/madhukarjeedi/
 ---
 
 ## ⭐ Support
