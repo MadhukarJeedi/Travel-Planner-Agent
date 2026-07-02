@@ -14,11 +14,10 @@ The application combines AI agents, FastAPI, Streamlit, and external APIs to del
 
 ## 🚀 Live Demo
 
-🔗 **Application:** https://your-live-app-url.com
+🔗 **Application:** https://travel-planner-agent-1-ii48.onrender.com
 
-📖 **API Documentation:** https://your-api-url.com/docs
+📖 **API Documentation:** https://travel-planner-agent-veke.onrender.com
 
-🎥 **Demo Video:** https://your-demo-video-link.com
 
 ---
 
@@ -306,11 +305,3 @@ LinkedIn: Add Your LinkedIn Profile URL
 If you found this project useful, please consider giving it a ⭐ on GitHub.
 
 Your support helps improve the project and encourages future development.
-
----
-
-## 📄 License
-
-This project is intended for educational, learning, and portfolio purposes.
-
-Feel free to use, modify, and extend it for your own projects.
