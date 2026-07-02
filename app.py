@@ -1,6 +1,8 @@
 import streamlit as st
 import requests
+import os
 
+API_URL = os.getenv("API_URL")
 REQUEST_TIMEOUT = 90  # seconds
 
 # Page Configuration
