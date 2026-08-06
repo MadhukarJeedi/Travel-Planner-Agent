@@ -14,7 +14,7 @@ The application combines AI agents, FastAPI, Streamlit, and external APIs to del
 
 ## 🚀 Live Demo
 
-🔗 **Application(live on Streamlit):** https://travel-planner-agent-madhu.streamlit.app/
+🔗 **Application(live on Streamlit):** https://travel-planner-agent-madhu.streamlit.app/  
 📖 **API Documentation(Backend on Render):** https://travel-planner-agent-veke.onrender.com
 
 
