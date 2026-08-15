@@ -21,7 +21,7 @@ if not GROQ_API_KEY:
     )
  
 llm = ChatGroq(
-    model="Qwen3.6 27B",
+    model="qwen/qwen3.6-27b",
     api_key=GROQ_API_KEY,
     temperature=0.2,  # low temperature -> more consistent formatting for downstream parsing
 )
