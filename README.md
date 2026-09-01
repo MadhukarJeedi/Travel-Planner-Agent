@@ -21,6 +21,8 @@ The application combines AI agents, FastAPI, Streamlit, and external APIs to del
 ---
 
 ## 📸 Application Screenshots
+### Work Flow
+![Application Work Flow](images/Travel Planner Work flow.png)
 
 ### Home Page
 
