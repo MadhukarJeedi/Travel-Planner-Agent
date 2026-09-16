@@ -1,115 +1,199 @@
 # 🌍 AI Travel Planner Agent
 
-[![Python](https://img.shields.io/badge/Python-3.10+-blue)]()
-[![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green)]()
-[![Streamlit](https://img.shields.io/badge/Streamlit-Frontend-red)]()
-[![Groq](https://img.shields.io/badge/Groq-LLM-orange)]()
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-Frontend-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Multi--Agent-blueviolet)](https://langchain-ai.github.io/langgraph/)
+[![Groq](https://img.shields.io/badge/Groq-LLM-orange)](https://groq.com/)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Active-success)]()
 
-An AI-powered Travel Planner that generates personalized travel itineraries, recommends tourist attractions, and displays destination images using real-time data and Large Language Models (LLMs).
-
-The application combines AI agents, FastAPI, Streamlit, and external APIs to deliver an intelligent and interactive travel-planning experience.
+> An intelligent, multi-agent AI travel planner that generates fully personalized travel itineraries using real-time data — covering weather, tourist attractions, train schedules, driving routes, and destination images — all orchestrated by a LangGraph Supervisor Agent.
 
 ---
 
 ## 🚀 Live Demo
 
-🔗 **Application(live on Streamlit):** https://travel-planner-agent-madhu.streamlit.app/  
-📖 **API Documentation(Backend on Render):** https://travel-planner-agent-veke.onrender.com
-
+| Service | URL |
+|---------|-----|
+| 🌐 Streamlit App | https://travel-planner-agent-madhu.streamlit.app/ |
+| 📖 FastAPI Docs (Swagger) | https://travel-planner-agent-veke.onrender.com/docs |
 
 ---
 
-## 📸 Application Screenshots
-### Work Flow
+## 📸 Screenshots
+
+### Application Workflow
 ![Application Work Flow](images/work_flow.png)
 
 ### Home Page
-
 ![Home Page](images/home_page.png)
 
 ### Travel Query Input
-
 ![Travel Query](images/query_input.png)
 
 ### Generated Travel Plan
-
 ![Travel Plan](images/travel_plan.png)
 
-### Tourist Destination Images
-
+### Tourist Destination Gallery
 ![Gallery](images/gallery.png)
 
 ### API Documentation (Swagger UI)
-
 ![Swagger UI](images/swagger_ui.png)
 
 ---
 
 ## ✨ Features
 
-* 🤖 AI-powered travel itinerary generation
-* 🌍 Personalized trip recommendations
-* 🗺️ Tourist attraction suggestions
-* 📷 Destination cover and gallery images
-* ⚡ FastAPI REST API backend
-* 🎨 Streamlit interactive frontend
-* 🔄 Modular AI Agent architecture
-* 🔑 Secure environment variable configuration
-* 📱 Responsive and user-friendly interface
+| Feature | Description |
+|---------|-------------|
+| 🤖 **Multi-Agent Orchestration** | LangGraph Supervisor coordinates all specialist sub-agents |
+| 🌤️ **Live Weather** | Real-time weather via OpenWeather API |
+| 📍 **Tourist Attractions** | Top places powered by Geoapify API |
+| 🚆 **Train Schedules** | Indian railway info via RailRadar API |
+| 🗺️ **Route Planning** | Driving distance & time via OpenRouteService API |
+| 📷 **Destination Images** | Cover + gallery images via Wikipedia/Wikimedia Commons (no API key needed) |
+| ⚡ **FastAPI Backend** | High-performance REST API with Swagger documentation |
+| 🎨 **Streamlit Frontend** | Interactive, chat-history-aware UI |
+| 🔄 **Parallel Image Fetching** | ThreadPoolExecutor fetches all place images concurrently |
+| 🔑 **Secure Config** | All API keys managed via `.env` |
 
 ---
 
 ## 🏗️ System Architecture
 
+The project follows a **Supervisor → Specialist Agents** multi-agent pattern using **LangGraph StateGraph**.
+
 ```text
-User
-  │
-  ▼
-Streamlit Frontend
-  │
-  ▼
-FastAPI Backend
-  │
-  ▼
-AI Travel Agent
-  ├── Groq LLM
-  ├── Travel Information APIs
-  └── Image APIs
-  │
-  ▼
-Personalized Travel Plan + Images
+User Query
+    |
+    v
+Streamlit Frontend  (app.py)
+    |  HTTP POST /travel
+    v
+FastAPI Backend  (api.py)
+    |
+    v
+agent.py  --re-exports-->  SupervisorAgent  (supervisor.py)
+                                   |
+                         LangGraph StateGraph
+                                   |
+                     +-------------+-------------+
+                     v                           v
+              supervisor_node             image_node
+              (ReAct Agent)         (Image Agent - parallel)
+                     |
+        +------------+------------+-----------+
+        v            v            v           v
+   get_weather   get_places   get_trains  get_route
+        |            |            |           |
+   weather_tool  places_tool  railway_tool  route_tool
+        |            |            |           |
+   OpenWeather    Geoapify    RailRadar   OpenRoute
+      API           API          API      Service API
 ```
+
+### Data Flow
+
+1. **User** submits a natural language travel query in the Streamlit UI
+2. **Streamlit** POSTs the query to the FastAPI `/travel` endpoint
+3. **FastAPI** calls `SupervisorAgent.invoke()`
+4. The **Supervisor Node** runs a ReAct (Reason + Act) loop — calling whichever specialist tools are needed
+5. The **Image Node** fetches Wikipedia images for all extracted place names (in parallel)
+6. The final **travel plan + images** are returned to Streamlit and rendered
 
 ---
 
-## 🛠️ Technology Stack
+## 🧠 Agent Architecture — Deep Dive
 
-### Backend
+### 1. 🧭 Supervisor Agent (`supervisor.py`)
 
-* Python
-* FastAPI
-* Pydantic
+The brain and orchestrator of the entire system. Built as a **LangGraph `create_react_agent`** that:
 
-### Frontend
+- Receives the user's natural language travel query
+- Decides **which tools to call and in what order** using the ReAct reasoning loop
+- Calls `get_weather`, `get_places`, `get_trains`, `get_route` as needed
+- Synthesizes all tool outputs into a structured travel plan:
 
-* Streamlit
+```
+DESTINATION OVERVIEW
+TOP PLACES TO VISIT  (📍 Place: description for each)
+WEATHER              (Condition, Temperature, Humidity)
+ITINERARY            (Day-by-day plan)
+TRAVEL TIPS          (5-8 practical tips)
+TRAIN INFORMATION    (🚆 Train Name | Train No | Departure)
+```
 
-### AI & LLM
+**LLM:** Groq `qwen/qwen3.8-27b` · Temperature `0.2` · Max Tokens `900`
 
-* Groq
-* AI Agent Framework
+---
 
-### APIs
+### 2. 🖼️ Image Agent (`agents/image_agent.py`)
 
-* Travel Information APIs
-* Image Search APIs
+Post-processing specialist that runs **after** the supervisor:
 
-### Development Tools
+- Extracts all `📍 Place Name` entries from the travel plan using regex
+- Fetches a **cover image** and up to 5 **gallery images** per place via Wikipedia/Wikimedia Commons
+- Uses `ThreadPoolExecutor` (6 workers) to fetch all images **in parallel** — no sequential bottleneck
+- Returns an ordered list of `{ name, cover_image, gallery }` dicts
+- Falls back gracefully: if no Wikipedia image exists, `cover_image` is `None` and `gallery` is `[]`
 
-* Git
-* GitHub
-* Virtual Environment (venv)
+---
+
+### 3. 🌤️ Weather Agent (`agents/weather_agent.py`)
+
+- Wraps `weather_tool` as a LangGraph ReAct agent
+- Given a city name → fetches live: **condition**, **temperature (°C)**, **humidity (%)**
+- Zero hallucination policy: strictly reports only what the OpenWeather API returns
+- **LLM:** Groq `qwen/qwen3.8-27b` · Temperature `0.1`
+
+---
+
+### 4. 📍 Places Agent (`agents/places_agent.py`)
+
+- Wraps `places_tool` as a LangGraph ReAct agent
+- Returns **top 10–15 tourist attractions** for a destination using the Geoapify Places API
+- Formats each result as: `📍 Place Name:` + one-line description
+- Does not invent places not returned by the API
+
+---
+
+### 5. 🚆 Railway Agent (`agents/railway_agent.py`)
+
+- Wraps `railway_tool` as a LangGraph ReAct agent
+- Finds direct trains between two Indian cities using the **RailRadar API**
+- Includes: **train name**, **train number**, **departure time**, **operating days**
+- Covers 30+ major Indian cities via a built-in city → station code lookup table
+
+---
+
+### 6. 🗺️ Route Agent (`agents/route_agent.py`)
+
+- Wraps `route_tool` as a LangGraph ReAct agent
+- Calculates **driving distance (km)** and **estimated travel time** between two cities
+- Uses the **OpenRouteService API** — real road network data, not straight-line distance
+
+---
+
+## 🛠️ Tools (`tools/`)
+
+| Tool | File | API | Purpose |
+|------|------|-----|---------|
+| `weather_tool` | `tools/weather.py` | OpenWeather API | Live weather for a city |
+| `places_tool` | `tools/places.py` | Geoapify Places API | Top tourist attractions |
+| `railway_tool` | `tools/railway.py` | RailRadar API | Trains between two stations |
+| `route_tool` | `tools/route.py` | OpenRouteService | Driving route & distance |
+| `get_cover_image` | `tools/image_tool.py` | Wikipedia REST API | Cover image for a place |
+| `get_gallery_images` | `tools/image_tool.py` | Wikimedia Commons API | Gallery images for a place |
+
+### Railway Tool — Station Code Mapping (Built-in)
+
+```python
+"hyderabad" -> "SC"     "delhi"     -> "NDLS"   "mumbai"    -> "CSTM"
+"goa"       -> "MAO"    "bangalore" -> "SBC"    "chennai"   -> "MAS"
+"kolkata"   -> "HWH"    "pune"      -> "PUNE"   "jaipur"    -> "JP"
+# ... 30+ cities supported
+```
 
 ---
 
@@ -117,180 +201,307 @@ Personalized Travel Plan + Images
 
 ```text
 Travel-Planner-Agent/
-│
-├── tools/
-│   ├── image_tool.py
-│   └── ...
-│
-├── agent.py
-├── api.py
-├── app.py
-├── requirements.txt
-├── .env
-├── images/
-│   ├── home_page.png
-│   ├── query_input.png
-│   ├── travel_plan.png
-│   ├── gallery.png
-│   └── swagger_ui.png
-│
-├── README.md
-└── .gitignore
+|
++-- agents/                       # Specialist LangGraph ReAct sub-agents
+|   +-- __init__.py
+|   +-- image_agent.py            # Parallel image fetcher (Wikipedia/Wikimedia)
+|   +-- weather_agent.py          # Weather specialist (OpenWeather)
+|   +-- places_agent.py           # Tourist attractions specialist (Geoapify)
+|   +-- railway_agent.py          # Indian railways specialist (RailRadar)
+|   +-- route_agent.py            # Driving route specialist (OpenRouteService)
+|
++-- tools/                        # Raw API tool functions (@tool decorated)
+|   +-- weather.py                # OpenWeather API integration
+|   +-- places.py                 # Geoapify Places API integration
+|   +-- railway.py                # RailRadar API + city->station code mapping
+|   +-- route.py                  # OpenRouteService API integration
+|   +-- image_tool.py             # Wikipedia + Wikimedia Commons image fetcher
+|
++-- images/                       # Screenshots used in this README
+|   +-- work_flow.png
+|   +-- home_page.png
+|   +-- query_input.png
+|   +-- travel_plan.png
+|   +-- gallery.png
+|   +-- swagger_ui.png
+|
++-- supervisor.py                 # Main supervisor agent + LangGraph StateGraph
++-- agent.py                      # Thin shim -- re-exports SupervisorAgent as agent
++-- api.py                        # FastAPI REST API  (POST /travel)
++-- app.py                        # Streamlit frontend UI
++-- requirements.txt              # Python dependencies
++-- .env                          # Your secret API keys (not committed to Git)
++-- .env.example                  # Template for API keys
++-- .gitignore
++-- README.md
 ```
 
 ---
 
-## ⚙️ Installation
+## ⚙️ Installation & Setup
 
-### 1. Clone the Repository
+### Prerequisites
+
+- Python **3.10** or higher
+- `pip` package manager
+- API keys for the external services (all have free tiers)
+
+---
+
+### Step 1 — Clone the Repository
 
 ```bash
 git clone https://github.com/MadhukarJeedi/Travel-Planner-Agent.git
 cd Travel-Planner-Agent
 ```
 
-### 2. Create a Virtual Environment
+### Step 2 — Create a Virtual Environment
 
-#### Windows
-
+**Windows:**
 ```bash
 python -m venv venv
 venv\Scripts\activate
 ```
 
-#### Linux / macOS
-
+**Linux / macOS:**
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Install Dependencies
+### Step 3 — Install Dependencies
 
 ```bash
 pip install -r requirements.txt
+```
+
+### Step 4 — Configure Environment Variables
+
+```bash
+cp .env.example .env
+# Then open .env and fill in your API keys
 ```
 
 ---
 
 ## 🔑 Environment Variables
 
-Create a `.env` file in the root directory.
-
 ```env
-OPENWEATHER_API_KEY = Paste your OPENWEATHER API KEY for getting live weather info
-GROQ_API_KEY = Paste your GROQ API KEY 
-RAPIDAPI_KEY = paste your RAPID API KEY for getting live trains info
-ORS_API_KEY = Paste your OpenRouteService API KEY for Route Planning
-GEOAPIFY_API_KEY = Paste your Geoapify API KEY for Tourist Places
-UNSPLASH_API_KEY=Paste your PEXELS API KEY for Tourist Places images
+# LLM Provider (required)
+GROQ_API_KEY=your_groq_api_key_here
+
+# Weather (required)
+OPENWEATHER_API_KEY=your_openweather_api_key_here
+
+# Tourist Attractions (required)
+GEOAPIFY_API_KEY=your_geoapify_api_key_here
+
+# Indian Railways (required for train info)
+RAILRADAR_API_KEY=your_railradar_api_key_here
+
+# Driving Routes (required for route info)
+ORS_API_KEY=your_openrouteservice_api_key_here
 ```
+
+### Where to Get API Keys
+
+| Variable | Service | Free Tier | Sign Up |
+|----------|---------|-----------|---------|
+| `GROQ_API_KEY` | Groq Cloud (LLM) | ✅ Yes | https://console.groq.com |
+| `OPENWEATHER_API_KEY` | OpenWeatherMap | ✅ Yes | https://openweathermap.org/api |
+| `GEOAPIFY_API_KEY` | Geoapify Places | ✅ Yes (3000 req/day) | https://www.geoapify.com |
+| `RAILRADAR_API_KEY` | RailRadar API | ✅ Yes | https://railradar.in |
+| `ORS_API_KEY` | OpenRouteService | ✅ Yes | https://openrouteservice.org |
+
+> **📝 Note:** Images use **Wikipedia / Wikimedia Commons** — completely free, no API key required.
 
 ---
 
-## ▶️ Run the FastAPI Backend
+## ▶️ Running the Application
+
+You need **two terminals** running simultaneously.
+
+### Terminal 1 — Start the FastAPI Backend
 
 ```bash
-uvicorn api:app --reload
+uvicorn api:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Open:
+| URL | Purpose |
+|-----|---------|
+| `http://localhost:8000` | API root |
+| `http://localhost:8000/docs` | Swagger UI (interactive API docs) |
+| `http://localhost:8000/redoc` | ReDoc documentation |
 
-```text
-http://127.0.0.1:8000
-```
-
-Swagger Documentation:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
----
-
-## ▶️ Run the Streamlit Frontend
+### Terminal 2 — Start the Streamlit Frontend
 
 ```bash
 streamlit run app.py
 ```
 
+Open **`http://localhost:8501`** in your browser.
+
 ---
 
-## 📡 API Endpoint
+## 📡 API Reference
 
-### Generate Travel Plan
+### `POST /travel`
 
-**POST** `/travel`
+Generates a complete AI-powered travel plan.
 
-#### Request
+**Request:**
 
-```json
+```http
+POST http://localhost:8000/travel
+Content-Type: application/json
+
 {
-  "query": "Plan a 5-day trip to Goa"
+  "query": "Plan a 3-day trip to Goa from Hyderabad"
 }
 ```
 
-#### Response
+**Success Response `200 OK`:**
 
 ```json
 {
-  "travel_plan": "Generated itinerary...",
-  "cover_image": "image_url",
-  "gallery_images": [
-    "image1_url",
-    "image2_url",
-    "image3_url"
+  "status": "success",
+  "query": "Plan a 3-day trip to Goa from Hyderabad",
+  "response": "**DESTINATION OVERVIEW**\nGoa is India's smallest state...",
+  "images": [
+    {
+      "name": "Calangute Beach",
+      "cover_image": "https://upload.wikimedia.org/wikipedia/commons/...",
+      "gallery": [
+        "https://upload.wikimedia.org/wikipedia/commons/..."
+      ]
+    }
   ]
 }
 ```
 
+**Error Response:**
+
+```json
+{
+  "status": "error",
+  "message": "Query cannot be empty."
+}
+```
+
 ---
 
-## 💡 Sample Queries
+## 🧩 LangGraph State & Graph Definition
 
-* Plan a 3-day trip to Kerala
-* Family vacation in Manali
-* Budget trip to Goa
-* Honeymoon trip to Bali
-* Best places to visit in Hyderabad
-* Weekend getaway near Bangalore
+### State
+
+```python
+class TravelState(TypedDict):
+    query: str           # Original user travel question
+    travel_plan: str     # Synthesized plan text (filled by supervisor_node)
+    images: list[dict]   # [{name, cover_image, gallery}] (filled by image_node)
+    places: list[str]    # Extracted place names used for image fetching
+```
+
+### Graph Edges
+
+```
+START --> supervisor_node --> image_fetcher --> END
+```
+
+---
+
+## 💬 Sample Queries
+
+```
+Plan a 3-day trip to Goa from Hyderabad
+Best tourist places in Jaipur
+Weekend trip to Mysore from Bangalore
+5-day Rajasthan tour starting from Delhi
+Family vacation in Manali
+Honeymoon destination in Kerala
+Budget trip to Pondicherry from Chennai
+Weather and travel tips for Shimla in December
+```
 
 ---
 
 ## 🎯 Key Highlights
 
-* AI-generated travel itineraries
-* Real-time destination images
-* FastAPI REST services
-* Streamlit interactive UI
-* Modular and scalable architecture
-* Easy integration with external APIs
-* Recruiter-friendly project structure
+- ✅ Real multi-agent system — not a single monolithic LLM call
+- ✅ LangGraph StateGraph with clean node separation
+- ✅ Parallel image fetching with ThreadPoolExecutor
+- ✅ Zero hallucination for factual data (trains, weather, routes)
+- ✅ Graceful error handling at every API layer
+- ✅ FastAPI + Streamlit clean separation of concerns
+- ✅ Session history — revisit any past travel query from the sidebar
 
 ---
 
 ## 🔮 Future Enhancements
 
-* 🏨 Hotel recommendations
-* ✈️ Flight search integration
-* 🌤️ Weather forecasting
-* 📍 Google Maps integration
-* 💰 Budget estimation
-* 📄 PDF itinerary generation
-* 🎙️ Voice-enabled travel assistant
-* 🌐 Multi-language support
+- [ ] 🏨 Hotel recommendations (Booking.com / MakeMyTrip API)
+- [ ] ✈️ Flight search integration (Amadeus / Skyscanner API)
+- [ ] 💰 Automated budget estimation per trip
+- [ ] 📄 PDF itinerary download/export
+- [ ] 🗺️ Interactive Google Maps embed with route overlay
+- [ ] 🎙️ Voice query support (speech-to-text)
+- [ ] 🌐 Multi-language travel plan output
+- [ ] 💬 Multi-turn chat conversation mode
+- [ ] 📱 Mobile-first responsive UI redesign
+
+---
+
+## 🐛 Troubleshooting
+
+| Issue | Likely Cause | Fix |
+|-------|-------------|-----|
+| `GROQ_API_KEY is not set` | Missing `.env` file | Create `.env` with all required keys |
+| Cannot reach the travel planner API | FastAPI not running | Run `uvicorn api:app --reload` first |
+| Request timed out | LLM slow to respond | Increase `REQUEST_TIMEOUT` in `app.py` (default: 90s) |
+| No train results returned | City not in station map | Use station code directly (e.g., `SC` for Hyderabad) |
+| No images showing | Wikipedia page name mismatch | Expected for lesser-known places; others still work |
+| ImportError for `create_agent` | Wrong import path | Use `create_react_agent` from `langgraph.prebuilt` |
+
+---
+
+## 📦 Dependencies
+
+```text
+langchain
+langchain-community
+langchain-core
+langchain-groq
+langgraph
+fastapi
+uvicorn
+streamlit
+pydantic
+requests
+python-dotenv
+```
+
+Install all with:
+```bash
+pip install -r requirements.txt
+```
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome.
+Contributions are welcome!
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to your branch
-5. Open a Pull Request
+1. **Fork** the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Commit your changes: `git commit -m 'Add my feature'`
+4. Push to the branch: `git push origin feature/my-feature`
+5. Open a **Pull Request**
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — free to use, modify, and distribute.
 
 ---
 
@@ -298,13 +509,13 @@ Contributions are welcome.
 
 **Madhukar Jeedi**
 
-GitHub: https://github.com/MadhukarJeedi
+[![GitHub](https://img.shields.io/badge/GitHub-MadhukarJeedi-181717?logo=github)](https://github.com/MadhukarJeedi)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-madhukarjeedi-0A66C2?logo=linkedin)](https://www.linkedin.com/in/madhukarjeedi/)
 
-LinkedIn: https://www.linkedin.com/in/madhukarjeedi/
 ---
 
 ## ⭐ Support
 
-If you found this project useful, please consider giving it a ⭐ on GitHub.
+If you found this project useful, please consider giving it a ⭐ on GitHub!
 
-Your support helps improve the project and encourages future development.
+Your support helps improve the project and encourages future development. 🙏
