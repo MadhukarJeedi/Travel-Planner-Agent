@@ -1,8 +1,11 @@
 import streamlit as st
 import requests
 import os
+from dotenv import load_dotenv
 
-API_URL = os.getenv("API_URL")
+load_dotenv()
+
+API_URL = os.getenv("API_URL", "http://localhost:8000/travel")
 REQUEST_TIMEOUT = 90  # seconds
 
 # Page Configuration
@@ -62,7 +65,7 @@ div[data-testid="stContainer"] {
 # Hero Section
 st.markdown("""
 <div class="hero">
-    <h1>✈️ AI Travel Planner Agent</h1>
+    <h1> AI Travel Planner Agent</h1>
     <h4>Plan smarter trips with AI-powered itineraries</h4>
     <p>Weather • Tourist Attractions • Railway Information • Routes • Travel Tips</p>
 </div>
