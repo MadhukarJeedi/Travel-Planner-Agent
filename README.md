@@ -343,6 +343,104 @@ Open **`http://localhost:8501`** in your browser.
 
 ---
 
+
+---
+
+## 🐳 Docker Deployment
+
+You can run the entire application using Docker — no local Python install or dependency setup required.
+
+### Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+- A `.env` file in the project root with all your API keys
+
+### Project Docker Files
+
+| File | Purpose |
+|------|---------|
+| `Dockerfile` | Multi-stage build — `builder` installs deps, `runtime` is the slim production image |
+| `docker-compose.yml` | Orchestrates the `api` (FastAPI) and `app` (Streamlit) containers |
+| `.dockerignore` | Excludes `venv/`, `__pycache__/`, `.env`, `.git/` from the build context |
+
+### Architecture Inside Docker
+
+```
+Docker Network
+    ├── travel_planner_api   (FastAPI)   → port 8000
+    │        ↑
+    │   API_URL=http://api:8000/travel
+    │        ↓
+    └── travel_planner_app   (Streamlit) → port 8501
+```
+
+Streamlit talks to FastAPI using Docker's internal DNS (`http://api:8000/travel`), so no manual IP configuration is needed.
+
+### Build and Run
+
+**Start both services (build + run):**
+
+```bash
+docker-compose up --build
+```
+
+**Run in detached / background mode:**
+
+```bash
+docker-compose up --build -d
+```
+
+**Stop all containers:**
+
+```bash
+docker-compose down
+```
+
+**View live logs:**
+
+```bash
+docker-compose logs -f
+```
+
+**View logs for a specific service:**
+
+```bash
+docker-compose logs -f api
+docker-compose logs -f app
+```
+
+### Access the App
+
+| Service | URL |
+|---------|-----|
+| 🎨 Streamlit UI | http://localhost:8501 |
+| ⚡ FastAPI Root | http://localhost:8000 |
+| 📖 Swagger Docs | http://localhost:8000/docs |
+
+### Dockerfile Overview
+
+The `Dockerfile` uses a **multi-stage build** to keep the final image lean:
+
+```dockerfile
+# Stage 1: Builder — installs all Python dependencies
+FROM python:3.10-slim AS builder
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# Stage 2: Runtime — copies only installed packages + source code
+FROM python:3.10-slim AS runtime
+COPY --from=builder /install /usr/local
+COPY . .
+# Runs as non-root user for security
+USER appuser
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### Health Check
+
+The `api` service has a built-in Docker health check. The `app` (Streamlit) container will only start **after** the FastAPI backend passes its health check — ensuring no connection errors on startup.
+
+> **📝 Note:** Make sure your `.env` file exists with all required API keys before running `docker-compose up`.
+
 ## 📡 API Reference
 
 ### `POST /travel`
